@@ -1,5 +1,6 @@
 ---
-title: "IODS course project"
+title: "IODS Course Project"
+author: "Justin Box"
 output:
   html_document:
     theme: cosmo
