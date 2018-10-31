@@ -7,7 +7,7 @@ date: "10/31/2018"
 
 *This is Intro to Open Data Science. A course for everyone and a course for anywhere. The course runs for 7 weeks (Tue. 16-18:00) and consists of multiple on-line projects and assignments.*
 
-[My Repository](https://justinrbox.github.io/IODS-project/)
+[My Repository](https://github.com/justinrbox/IODS-project)
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
