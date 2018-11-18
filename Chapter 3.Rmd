@@ -1,0 +1,221 @@
+---
+title: "Chapter3"
+author: "Justin Box"
+date: "11/13/2018"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F)
+```
+#IODS Week 3
+
+##The Data
+
+*This data evaluates student achievement in secondary education of two Portuguese schools. The data attributes include student grades, demographic, social and school related features and it was collected by using school reports and questionnaires. Two datasets are provided regarding the performance in two distinct subjects: Mathematics (mat) and Portuguese language (por). *
+
+*For this analysis, the two data sets were combined and only those cases with the same student's repsonse in BOTH data sets were included.*
+
+##Description of Variables
+
+For full description of the variables [Click Here](https://archive.ics.uci.edu/ml/datasets/Student+Performance)
+
+alc_use is the average of 'Dalc' and 'Walc'
+high_use is TRUE if 'alc_use' is higher than 2 and FALSE otherwise
+
+*The focus of this analysis is on the relationships between high/low alcohol consumption and selected other variables in the data*
+
+###My Hypotheses
+
+*1) Parental education affects alcohol use*
+
+*2) Study time affects alcohol use*
+
+*3) Access to internet affects alcohol use*
+
+*4) Address affects alcohol use*
+
+##Analysis
+
+alc <- read.csv(file = "alc.csv", header=TRUE, sep=",")
+
+###Looking at Various Plots
+
+```{r, echo=FALSE}
+alc = read.csv(file = "~/Desktop/Open Data Science Course Stuff/IODS-project/Data/alc.csv", header=TRUE, sep=",")
+
+###access the tidyverse libraries tidyr, dplyr, ggplot2
+library(tidyr); library(dplyr); library(ggplot2)
+
+###glimpse at the alc data
+glimpse(alc)
+
+###use gather() to gather columns into key-value pairs and then glimpse() at the resulting data
+gather(alc) %>% glimpse
+
+###draw a bar plot of each variable
+gather(alc) %>% ggplot(aes(value)) + facet_wrap("key", scales = "free")+ geom_bar()
+
+### produce summary statistics by group
+alc %>% group_by(sex, high_use) %>% summarise(count = n(), mean_grade = mean(G3))
+
+### initialize a plot of high_use and G3
+g1 <- ggplot(alc, aes(x = high_use, y = G3, col = sex))
+
+### define the plot as a boxplot and draw it
+g1 + geom_boxplot() + ylab("grade")
+
+### initialise a plot of high_use and absences
+g2 <- ggplot(alc, aes(x = high_use, y = absences, col = sex))
+
+### define the plot as a boxplot and draw it
+g2 + geom_boxplot() + ggtitle("Student absences by alcohol consumption and sex")
+
+### initialize a plot of high_use and studytime
+g1 <- ggplot(alc, aes(x = high_use, y = studytime, col = sex))
+
+### define the plot as a boxplot and draw it
+g1 + geom_boxplot() + ylab("studytime")
+
+### initialize a plot of 'high_use'
+g3 <- ggplot(alc, aes(high_use))
+
+### draw a bar plot of high_use by internet access
+g3 + facet_wrap("internet") + geom_bar()
+
+### initialize a plot of 'high_use'
+g4 <- ggplot(alc, aes(high_use))
+
+### draw a bar plot of high_use by address
+g4 + facet_wrap("address") + geom_bar()
+
+### initialize a plot of 'high_use'
+studytime_v_high_use <- ggplot(alc, aes(high_use))
+
+### draw a bar plot of high_use by studytime
+studytime_v_high_use + facet_wrap("studytime") + geom_bar()
+## Bar Plots 
+alc<- read.csv(file = "~/Desktop/Open Data Science Course Stuff/IODS-project/Data/alc.csv")
+
+```
+
+## Including Plots
+
+
+```{r, echo=FALSE}
+alc = read.csv(file = "~/Desktop/Open Data Science Course Stuff/IODS-project/Data/alc.csv", header=TRUE, sep=",")
+library(tidyr); library(dplyr); library(ggplot2)
+
+gather(alc) %>% ggplot(aes(value)) + facet_wrap("key", scales = "free")+ geom_bar()
+```
+
+
+```{r, echo=FALSE}
+library(tidyr); library(dplyr); library(ggplot2)
+g4 <- ggplot(alc, aes(high_use))
+
+g4 + facet_wrap("address") + geom_bar()
+```
+
+Analysis: there appears to be a greater proportion of "high use" individuals who live in rural areas compared to urban.
+
+
+
+```{r echo=FALSE}
+library(tidyr); library(dplyr); library(ggplot2) 
+studytime_v_high_use <- ggplot(alc, aes(high_use))
+
+studytime_v_high_use + facet_wrap("studytime") + geom_bar()
+```
+
+Analysis: there appears to be a greater proportion of "high use" individuals who studied less than 2 hours per week
+
+##Logistic Regression
+
+m <- glm(high_use ~ address + absences + studytime + failures, data = alc, family = "binomial")
+
+##Summary of the Model
+
+```{r}
+# print out a summary of the model
+m <- glm(high_use ~ address + absences + studytime + failures, data = alc, family = "binomial")
+summary(m)
+```
+
+Deviance Residuals: 
+    Min       1Q   Median       3Q      Max  
+-1.5716  -0.7977  -0.6399   1.1262   2.1197  
+
+###Coefficients of the Model
+
+```{r echo=FALSE}
+# compute odds ratios (OR)
+OR <- coef(m) %>% exp
+# compute confidence intervals (CI)
+CI <- confint(m) %>% exp 
+# print out the odds ratios with their confidence intervals
+cbind(OR, CI)
+```
+
+An odds ratio (OR) is a measure of association between an exposure and an outcome. The OR represents the odds that an outcome will occur given a particular exposure, compared to the odds of the outcome occurring in the absence of that exposure.
+
+
+
+##Cross Tabulation
+
+```{r echo=FALSE}
+
+# predict probability of high_use
+probabilities <- predict(m, type = "response")
+
+# add predicted probabilities to 'alc'
+alc <- mutate(alc, probability = probabilities)
+
+# use probabilities to make prediction of high_use
+alc <- mutate(alc, prediction = probability > 0.5)
+
+
+# tabulate the target variable versus the predictions
+table(high_use = alc$high_use, prediction = alc$prediction)
+
+library(dplyr); library(ggplot2)
+
+# initialize plot of 'high_use' v. 'probability' in 'alc'
+g <- ggplot(alc, aes(x = probability , y = high_use, col = prediction))
+
+# define and draw the plot
+g  +  geom_point()
+
+# tabulate target variable versus the predictions
+table(high_use = alc$high_use, prediction = alc$prediction) %>% prop.table() %>% addmargins()
+```
+
+
+##Inaccurately Classified Individuals
+
+```{r echo=FALSE}
+# define loss function 
+loss_func <- function(class, prob) {
+n_wrong <- abs(class - prob) > 0.5
+mean(n_wrong)
+}
+# call loss_func to compute the average number of wrong predictions in the (training) data
+loss_func(class = alc$high_use, prob = alc$probability)
+ 
+```
+
+The training error rate here is 27.2%. 
+
+##Bonus: 10-Fold Cross Validation
+```{r echo=FALSE}
+
+library(boot)
+cv <- cv.glm(data = alc, cost = loss_func, glmfit = m, K = 10)
+
+# average number of wrong predictions in the cross validation
+cv$delta[1]
+```
+
+Here the error rate is 28%.

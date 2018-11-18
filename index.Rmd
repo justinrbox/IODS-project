@@ -23,3 +23,8 @@ output:
 ```
 
 ***
+
+```{r child = "Chapter 3.Rmd"}
+```
+
+***
