@@ -17,7 +17,7 @@ boston_scaled <- scale(Boston)
 
 #IODS Week 4
 
-##CLustering and Classifications
+*CLustering and Classifications*
 
 ##About the Data
 
