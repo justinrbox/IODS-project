@@ -16,7 +16,6 @@ library(MASS)
 library(corrplot)
 data("Boston")
 boston_scaled <- scale(Boston)
-set.seed(333)
 ```
 
 #IODS Week 4: Clustering and Classification
