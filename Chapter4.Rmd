@@ -19,7 +19,7 @@ boston_scaled <- scale(Boston)
 set.seed(333)
 ```
 
-# Chapter 4: Clustering and Classification
+#IODS Week 4: Clustering and Classification
 
 ##About the Data
 
