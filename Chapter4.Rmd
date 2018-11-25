@@ -5,9 +5,6 @@ date: "11/25/2018"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
 
 ```{r, include=FALSE}
 library(dplyr)
@@ -32,7 +29,7 @@ dim(Boston)
 
 All variables are further explained [HERE](https://stat.ethz.ch/R-manual/R-devel/library/MASS/html/Boston.html).
 
-###Graphing the Data
+##Graphing the Data
 
 ```{r, include=TRUE}
 pairs(Boston, lower.panel = NULL)
@@ -47,7 +44,7 @@ corrplot(cor_matrix, method="circle", type = "upper", cl.pos = "b", tl.pos = "d"
 
 Here, it is much easier to see the correlations. According to this matrix *rad* (index of accessibility to radial highways) and *tax* (full-value property-tax rate per $10,000) have the highest positive correlation. 
 
-###Standardizing the Data
+##Standardizing the Data
 
 After scaling, the summary of the data is now available:
 ```{r, include=TRUE}
@@ -75,7 +72,7 @@ train <- boston_scaled[ind,]
 test <- boston_scaled[-ind,]
 ```
 
-###Linear Discriminant Analysis
+##Linear Discriminant Analysis
 
 Next, I used the LDA on the training set *train*. This involves using the categorical crime rate *crime* as the target variable and all other variables as predictor variables.
 
@@ -87,7 +84,7 @@ plot(lda.fit, dimen = 2, col = classes, pch = classes)
 
 Here you can see that the *high* crime rate grouped more closely than the others. 
 
-###Making Predictions
+##Making Predictions
 
 First, I saved the crime categories from the test set and then removed the categorical crime variable from the test dataset. 
 
@@ -105,7 +102,7 @@ table(correct = correct_classes, predicted = lda.pred$class)
 
 From this table, we can see that the predicitons are fairly accurate depending on the category. In this model, the *high* was correctly predicted 25 times and incorrectly only 1. *Med-high*, however, was correctly predicted 14 times and incorrectly 5 times (4 in med_low and 1 in low). 
 
-###CLusters/Distance Measures 
+##CLusters/Distance Measures 
 
 First, the dataset "Boston" has to be re-loaded and re-scaled. 
 ```{r, include=TRUE}
