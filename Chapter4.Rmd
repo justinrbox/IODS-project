@@ -5,7 +5,6 @@ date: "11/25/2018"
 output: html_document
 ---
 
-
 ```{r, include=FALSE}
 library(dplyr)
 library(ggplot2)
@@ -17,7 +16,7 @@ boston_scaled <- scale(Boston)
 
 #IODS Week 4
 
-*CLustering and Classifications*
+*Clustering and Classification*
 
 ##About the Data
 
