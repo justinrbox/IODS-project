@@ -15,7 +15,9 @@ data("Boston")
 boston_scaled <- scale(Boston)
 ```
 
-#IODS Week 4: Clustering and Classification
+#IODS Week 4
+
+##CLustering and Classifications
 
 ##About the Data
 
