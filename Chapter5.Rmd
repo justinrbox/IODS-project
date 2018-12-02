@@ -1,0 +1,164 @@
+---
+title: "Chapter5"
+author: "Justin Box"
+date: "12/2/2018"
+output: html_document
+---
+```{r,message=FALSE, warning=FALSE}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(corrplot)
+library(GGally)
+library(FactoMineR)
+options(scipen=999)
+```
+
+#IODS Week 5
+
+##Description of the Data
+
+"HDI.Rank" = Country rank in Human Development Index
+"Country"            
+"HDI" = Human Development Index              
+"L.Exp.Birth" = Life expectancy at birth      
+"Exp.Yr.Ed" = Expected years of schooling      
+"Mean.Yr.Ed" = Mean years of schooling       
+"GNIperCap" = Gross national income (GNI) per capita        
+"GNIperCap-HDI.Rank" = Gross national income (GNI) per capita - Human Development Index 
+"GII.Rank"= Country rank in Gender Inequality Index
+"GII" = Gender Inequality Index              
+"Mat.Mort.Rat" = Maternal mortality ratio      
+"Ad.Birth.Rate" = Adolescent birth rate    
+"%Rep.in.Par"  = Percetange of female representatives in parliament       
+"Pop.w.2nd.Ed.F"  = Population of women with at least some secondary education
+"Pop.w.2nd.Ed.M"  = Population of men with at least some secondary education
+"Lab.Part.Rate.F" = Population of women participating in labor
+"Lab.Part.Rate.M" = Population of men participating in labor
+"Edu2.FM"  = The ratio of Female / Male populations with secondary education (edu2F / edu2M)
+"Labo.FM"  = The ratio of Female / Male participation in labour force (work2F / work2M)
+
+ 
+More information about the dataset can be found <a href="http://hdr.undp.org/en/content/human-development-index-hdi">here</a> and <a href="http://hdr.undp.org/sites/default/files/hdr2015_technical_notes.pdf">here</a>.
+
+```{r}
+url = "http://s3.amazonaws.com/assets.datacamp.com/production/course_2218/datasets/human2.txt"
+human <- read.table(url, sep=",", header=TRUE)
+```
+
+##Visualization
+
+In this graph, blue circles indicate positive correlations and red indicate negative. Size and intensity of the circle reflect the strength of the correlation. 
+
+```{r}
+# calculate the correlation matrix and round it
+cor_matrix<-cor(human) %>% round(digits = 2)
+# visualize the correlation matrix
+corrplot.mixed(cor_matrix, number.cex = .7, tl.pos = "d", tl.cex = 0.6)
+```
+
+
+
+```{r, echo=FALSE, cache=TRUE, message=FALSE, fig.width=10}
+library(GGally)
+ggpairs(human)
+```
+
+From this graph, we can see that there is a strong correlation between education Edu.Exp and life expectancy Life.Exp, GNI, maternal mortality Mat.Mor and adolescent birth rate Ado.Birth. Life expectancy Life.Exp is naturally linked to Mat.Mor and Ado.Birth (negative).
+
+
+## Principal Component Analysis
+
+A principal component analysis (PCA) is first performed on the non-standardized data. The following biplot shows the observations by the first two principal components (PC1, PC2). The arrow and its length represent the correlation between the feature and the corresponding principal component.
+
+```{r, echo=FALSE, fig.width=10, warning=FALSE}
+# perform principal component analysis (with the SVD method)
+pca_human <- prcomp(human)
+# draw a biplot of the principal component representation and the original variables
+biplot(pca_human, choices = 1:2, cex = c(0.8, 1), col = c("grey40", "deeppink2"))
+```
+
+GNI appears to be the only varaible correlated to PC1. However, this is due to its large range compared to others within the dataset. This affects the interpretation of the plot and which variables hare actually having an effect.
+
+The dataset is then re-standardized and PCA done again. Here is the summary of the new normalized dataset:
+
+```{r, echo=FALSE}
+# standardize the variables
+human_std <- scale(human)
+# print out a summary of the scaled dataset
+summary(human_std)
+```
+
+The biplot is drawn again but this time using the scaled dataset.
+
+Education **Edu.Exp**, **Edu2.FM** is negatively correlated to adolescent birth **Ado.Birth**, while life expectancy **Life.Exp** is negatively correlated to maternal mortality **Mat.Mor**. Gross national income **GNI** directly goes together with education and life expectancy, while against mortality and teenage birth, as expected. Female anticipation in parliment **Parli.F** can be somewhat related to ratio of female and male in the workforce **Labo.FM**.
+
+```{r, echo=FALSE, fig.width=10}
+# perform principal component analysis (with the SVD method)
+pca_human <- prcomp(human_std)
+# draw a biplot of the principal component representation and the original variables
+par(oma = c(0,0,3,0))
+invisible(biplot(pca_human, choices = 1:2, cex = c(0.8, 1), col = c("grey40", "deeppink2")) + title(main = "Education, Gender Equality and Their Relation to\nAdolescent Birth, Mortality and Parlimentary Involvement",outer = TRUE))
+```
+
+###Interpretation
+
+Because **Parli.F** and **Labo.FM** align with **PC2**, and **Edu.Exp**, **Edu2.FM**, **Life.Exp**,**GNI**, **Mat.Mor** and **Ado.Birth** align with **PC1**, it can be inferred that the principal components have their implicit meanings.
+
+For **PC1**, it's understandable to see education, income and life expectancy being related as they complement each other in real life. Poor education could lead to lack of opportunity and/or upward social mobility and therefore high adolescent birth rate, and subsequently maternal mortality. This mortality also directly affects life expectancy. 
+
+This principal component **PC1** therefore reflects **Health and knowledge** and its effects.
+
+For **PC2**, it's more about **Gender empowerment**. It could be inferred that as females become more prominent in the workforce, they end up being more politically active, which is a common finding in countries where gender equality is well documented.
+
+##Tea Dataset
+
+The **tea** dataset from **FactoMineR** library contains a very comprehensive research on how tea is consumed, including where, how, in which environment, etc. **age** is the only variable with integer values, while the rest contain categorical values, which are self-explanatory.
+
+
+###Loading the Data
+```{r, echo=FALSE}
+library(FactoMineR)
+data(tea)
+str(tea)
+```
+
+```{r, echo=FALSE}
+dim(tea)
+```
+
+###Variable Selection
+Next, 6 variables were selected: "Tea", "How", "how", "sugar", "where", "lunch". These will be the focus of my analysis.
+
+```{r,echo=FALSE, warning=FALSE}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+# column names to keep in the dataset
+keep_columns <- c("Tea", "How", "how", "sugar", "where", "lunch")
+# select the 'keep_columns' to create a new dataset
+tea_time <- dplyr::select(tea, one_of(keep_columns))
+# visualize the dataset
+gather(tea_time) %>% ggplot(aes(value)) + facet_wrap("key", scales = "free") + geom_bar() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
+```
+
+##Multiple Correspondence Analysis
+
+The table below is a summary of the MCA model performed on the tea dataset. As can be seen from the categorical variables, the way tea is packaged **how** and **where** it is used are closely related to **Dim.1**, as well as **Dim.2**. Meanwhile, the kind of **Tea** and **How** they are drank are related to **Dim.3**.
+
+```{r, echo=FALSE}
+# multiple correspondence analysis
+mca <- MCA(tea_time, graph = FALSE)
+# summary of the model
+summary(mca)
+```
+
+The factor map below show the correlation between variables in **Dim.1** and **Dim.2**. From this map, we see *tea bag* is closely related to *chain store*, while *unpackaged tea* anad *tea shop* are closely related. Earl Grey is usually served with milk, while black tea can be served with either milk, lemon or alone.
+
+```{r, echo=FALSE}
+# visualize MCA
+plot(mca, invisible=c("ind"), habillage="quali")
+```
+
+
+
