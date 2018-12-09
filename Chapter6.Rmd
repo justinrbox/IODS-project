@@ -1,0 +1,225 @@
+---
+title: "Chapter 6"
+author: "Justin Box"
+date: "12/9/2018"
+output: html_document
+---
+
+#IODS Week 6
+
+##About the Data
+
+*"40 male subjects were randomly assigned to one of two treatment groups and each subject was rated on the brief psychiatric rating scale (BPRS) measured before treatment began (week 0) and then at weekly intervals for eight weeks. The BPRS assesses the level of 18 symptom constructs such as hostility, suspiciousness, hallucinations and grandiosity; each of these is rated from one (not present) to seven (extremely severe). The scale is used to evaluate patients suspected of having schizophrenia"--from DataCamp.*
+
+*RATS is from a "nutrition study conducted in three groups of rats (Crowder and Hand, 1990). The three groups were put on different diets, and each animal's body weight (grams) was recorded repeatedly (approximately weekly, except in week seven when two recordings were taken) over a 9-week period. The question of most interest is whether the growth profiles of the three groups differ".--p. 22 [here](https://mooc.helsinki.fi/pluginfile.php/29659/course/section/2208/MABS4IODS-Part6.pdf).*
+
+##Visualizing the Data
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(dplyr)
+RATS <- read.table("https://raw.githubusercontent.com/ittobor/IODS-project/master/data/RATS.txt", sep="\t", header=TRUE)
+glimpse(RATS)
+RATS$ID <- factor(RATS$ID)
+RATS$Group <- factor(RATS$Group)
+glimpse(RATS)
+
+glimpse(RATS)
+```
+
+
+```{r}
+
+library(ggplot2)
+
+ggplot(RATS, aes(x = Time, y = Weight, linetype = ID)) +
+  geom_line() +
+  scale_linetype_manual(values = rep(1:10, times=4)) +
+  facet_grid(. ~ Group, labeller = label_both) +
+  theme(legend.position = "none") + 
+  scale_y_continuous(limits = c(min(RATS$Weight), max(RATS$Weight)))
+
+```
+*In these graphs, we can see that all rats gained weight. Also, rats appear to be grouped differently by their starting weight.*
+
+###Standardizing the Data
+
+
+```{r}
+# Standardise Weight
+RATSL <- RATS %>%
+  group_by(Time) %>%
+  mutate(stdweight = (Weight - mean(Weight))/sd(Weight)) %>%
+  ungroup()
+
+# Re-plot the data
+ggplot(RATSL, aes(x = Time, y = stdweight, linetype = ID)) +
+  geom_line() +
+  scale_linetype_manual(values = rep(1:10, times=4)) +
+  facet_grid(. ~ Group, labeller = label_both) +
+  theme(legend.position = "none") + 
+  scale_y_continuous(name = "standardized Weight")
+```
+
+*After standardization, the data appears different. The increases in the previous graph seem to have turned into straight lines or even a decrease in one case in Group 2.*
+
+
+Next, I took a look at the means of the groups over time. 
+```{r echo=TRUE, message=FALSE}
+n <- RATSL$Time %>% unique() %>% length()
+RATSS <- RATSL %>%
+  group_by(Group, Time) %>%
+  summarise( mean = mean(Weight), se = sd(Weight)/sqrt(n) ) %>%
+  ungroup()
+#glimpse(RATSS)
+ggplot(RATSS, aes(x = Time, y = mean, linetype = Group, shape = Group)) +
+  geom_line() +
+  scale_linetype_manual(values = c(1,2,3)) +
+  geom_point(size=3) +
+  scale_shape_manual(values = c(1,2,3)) +
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se, linetype="1"), width=0.3) +
+  theme(legend.position = "bottom") +
+  scale_y_continuous(name = "Mean(Wt) +/- SE(Wt)")
+```
+
+Now to look at the boxplots:
+
+```{r echo=TRUE, message=FALSE}
+RATSLS <- RATSL %>%
+  filter(Time > 1) %>%
+  group_by(Group, ID) %>%
+  summarise( mean=mean(Weight) ) %>%
+  ungroup()
+#glimpse(RATSLS)
+ggplot(RATSLS, aes(x = Group, y = mean)) +
+  geom_boxplot() +
+  stat_summary(fun.y = "mean", geom = "point", shape=23, size=4, fill = "white") +
+  scale_y_continuous(name = "mean(weight), whole study period")
+```
+
+*From the boxplots, you can see some outliers (at least one in each group).*
+
+###Removing Outliers
+
+```{r echo=TRUE, message=FALSE}
+# one method to remove the outliers
+RATSLSG3 <- RATSLS %>% filter(Group == 3)
+RATSLSG3 <- RATSLSG3 %>% filter(mean > 500)
+RATSLSGR <- RATSLS %>% filter(Group != 3)
+RATSLSGR <- RATSLSGR %>% filter(mean > 250) %>% filter(mean < 550)
+RATSLSR <- rbind(RATSLSGR, RATSLSG3)
+ggplot(RATSLSR, aes(x = Group, y = mean)) +
+  geom_boxplot() +
+  stat_summary(fun.y = "mean", geom = "point", shape=23, size=4, fill = "white") +
+  scale_y_continuous(name = "mean(weight), whole study period")
+```
+
+Now to test if there are any significant differences between groups using the t-test. 
+
+```{r echo=TRUE, message=FALSE}
+RATSLSRg12 <- RATSLS %>% filter(Group != 3)
+t.test(mean ~ Group, data = RATSLSRg12, var.equal = TRUE)
+RATSLSRg13 <- RATSLS %>% filter(Group != 2)
+t.test(mean ~ Group, data = RATSLSRg13, var.equal = TRUE)
+RATSLSRg23 <- RATSLS %>% filter(Group != 1)
+t.test(mean ~ Group, data = RATSLSRg23, var.equal = TRUE)
+```
+
+*There appears to be a significant difference between the mean of Group 1 and Group 2/3 (p<0.001)*
+
+*Groups 2 and 3 are not significantly different.*
+
+
+##Linear Mixed Effects Models for Normal Response Variables Using BPRS
+
+```{r echo=TRUE, message=FALSE}
+BPRS <- read.table("https://raw.githubusercontent.com/ittobor/IODS-project/master/data/BPRS.txt", sep="\t", header=TRUE)
+glimpse(BPRS)
+BPRSt1 <- filter(BPRS, treatment == 1)
+BPRSt2 <- filter(BPRS, treatment == 2)
+BPRSt2$subject <- BPRSt2$subject + 20
+BPRS <- rbind(BPRSt1,BPRSt2)
+BPRS$treatment <- factor(BPRS$treatment)
+BPRS$subject <- factor(BPRS$subject)
+summary(BPRS)
+```
+
+The `subject` values are overlapping in the `treatment` groups, and we want to be able to differentiate those. I have added 20 to the `subject` value in the second `treatment` group to create the difference.
+
+As mentioned in the instructions, ID and Group need to be factorized again. 
+
+```{r echo=TRUE, message=FALSE}
+ggplot(BPRS, aes(x = week, y = bprs, group = subject)) +
+  geom_line(aes(linetype = treatment)) + 
+  scale_x_continuous(name = "Week", breaks = seq(0, 8, 1)) +
+  scale_y_continuous(name = "BPRS") +
+  theme(legend.position = "bottom")
+```
+
+*This is quite a messsy graph, and it's not very useful at the moment.*
+
+##Fitting a Linear Regression Model 
+
+Here, *BPRS* is response and *week*/*treatment* are explanatory variables: 
+
+```{r echo=TRUE, message=FALSE}
+BPRS_reg <- lm(bprs ~ week + treatment, data=BPRS)
+summary(BPRS_reg)
+```
+
+This might be a more appropriate model the repeated measures of BPRS aren't independant:
+
+```{r echo=TRUE, message=FALSE}
+library(lme4)
+BPRS_ref <- lmer(bprs ~ week + treatment + (1 | subject), data=BPRS, REML=FALSE)
+summary(BPRS_ref)
+```
+
+*In this model `week` and `treatment` as fixed-effect terms and `1 | subject` as random-effect term.*
+
+Now I fit a random intercept and slope model:
+
+```{r echo=TRUE, message=FALSE}
+BPRS_ref1 <- lmer(bprs ~ week + treatment + (week | subject), data = BPRS, REML = FALSE)
+# print a summary of the model
+summary(BPRS_ref1)
+# perform an ANOVA test on the two models
+anova(BPRS_ref1, BPRS_ref)
+```
+
+*In this model `week | subject` are the random intercept and slope. This is compared to the previous random intercept model with analysis of variances. We can see from the chi-squared and p-value that at lower values the random intercept and random slope model performs better and has true significance.*
+
+##Plotting BPRS 
+
+```{r echo=TRUE, message=FALSE}
+
+Fitted <- fitted(BPRS_ref1)
+
+BPRS$Fitted <- Fitted
+
+ggplot(BPRS, aes(x = week, y = Fitted, group = subject)) +
+  geom_line(aes(linetype = treatment)) + 
+  scale_x_continuous(name = "week", breaks = seq(0, 8, 1)) +
+  scale_y_continuous(name = "BPRS") +
+  theme(legend.position = "bottom") +
+  ggtitle("BPRS_ref1 Fitted")
+
+BPRS$Fitted <- Fitted
+
+ggplot(BPRS, aes(x = week, y = Fitted, group = subject)) +
+  geom_line(aes(linetype = treatment)) + 
+  scale_x_continuous(name = "week", breaks = seq(0, 8, 1)) +
+  scale_y_continuous(name = "BPRS") +
+  theme(legend.position = "bottom") +
+  ggtitle("BPRS_ref2 Fitted")
+
+ggplot(BPRS, aes(x = week, y = bprs, group = subject)) +
+  geom_line(aes(linetype = treatment)) + 
+  scale_x_continuous(name = "week", breaks = seq(0, 8, 1)) +
+  scale_y_continuous(name = "BPRS") +
+  theme(legend.position = "bottom")  +
+  ggtitle("BPRS Obs")
+```
+
+*Here are the plots of the diagram of BPRS with fitted `bprs` values from with both random intercept and slope models. From fitted plots, you can see that there doesn't seem to be a difference.*
